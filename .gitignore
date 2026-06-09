@@ -103,6 +103,7 @@ local targets = {
     ["Flashlight"]            = { Color = Color3.fromRGB(  0, 255, 80), Name = "🔦 Фонарик"          },
     ["GoldPile"]              = { Color = Color3.fromRGB(  0, 255, 80), Name = "💰 Золото"            },
     ["Breaker Pole"]          = { Color = Color3.fromRGB(  0, 255, 80), Name = "⚡ Рубильник"         },
+    ["Crucifix"]              = { Color = Color3.fromRGB(255, 255,255), Name = "✝️ Распятие" },
     ["LiveBreakerPolePickup"] = { Color = Color3.fromRGB(  0, 220,255), Name = "🔌 Рубильник (живой)" },
     ["LiveHintBook"]          = { Color = Color3.fromRGB(  0, 160,255), Name = "📘 Подсказки"         },
     ["Rush"]         = { Color = Color3.fromRGB(255,  50, 50), Name = "💨 RUSH",    isMon=true },
