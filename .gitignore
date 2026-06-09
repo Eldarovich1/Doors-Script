@@ -14,7 +14,7 @@ local DEBUG_MODE = false
 -- ══════════════════════════════════════════════
 -- 1. SOFT SPEED +15
 -- ══════════════════════════════════════════════
-local BOOST = 15
+local BOOST = 7
 
 local function applyBoost()
     local char = LocalPlayer.Character
