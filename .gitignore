@@ -1,80 +1,54 @@
-local Players           = game:GetService("Players")
-local Workspace         = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService        = game:GetService("RunService")
-local Lighting          = game:GetService("Lighting")
-local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
-local player    = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
+local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid  = character:WaitForChild("Humanoid")
+local humanoid = character:WaitForChild("Humanoid")
 
 local DEBUG_MODE = false
 
 -- ══════════════════════════════════════════════
--- 1. СКОРОСТЬ
+-- 1. SOFT SPEED +15
 -- ══════════════════════════════════════════════
-local WALK_SPEED = 21
-local SEEK_SPEED = 28
-local seekChasing = false
+local BOOST = 15
 
-local function getTargetSpeed()
-    return seekChasing and SEEK_SPEED or WALK_SPEED
-end
-
-RunService.RenderStepped:Connect(function()
-    if not humanoid then return end
-    local t = getTargetSpeed()
-    if humanoid.WalkSpeed ~= t and humanoid.WalkSpeed ~= 0 then
-        humanoid.WalkSpeed = t
-    end
-end)
-
-local function setSpeed()
-    if humanoid and humanoid.WalkSpeed ~= 0 then
-        humanoid.WalkSpeed = getTargetSpeed()
+local function applyBoost()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    -- Мягкий буст через атрибут (как в основном скрипте)
+    char:SetAttribute("SpeedBoostExtra", BOOST)
+    
+    -- Дополнительный прямой буст WalkSpeed
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then
+        hum.WalkSpeed = 16 + BOOST  -- базовые 16 + 15 = 31
     end
 end
 
-task.spawn(function()
-    while not isScriptFinished do
-        pcall(function()
-            local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MainUI")
-            if mainUI then
-                local modules = mainUI.Initiator.Main_Game.RemoteListener.Modules
-                local a90 = modules:FindFirstChild("A90")
-                if a90 then a90:Destroy() end
-            end
-        end)
-        task.wait(0.1)
-    end
-end)
+if LocalPlayer.Character then
+    applyBoost()
+end
+LocalPlayer.CharacterAdded:Connect(applyBoost)
 
-task.spawn(function()
-    while not isScriptFinished do
-        pcall(function()
-            local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MainUI")
-            if mainUI then
-                local modules = mainUI.Initiator.Main_Game.RemoteListener.Modules
-                local SCR = modules:FindFirstChild("Screech")
-                if SCR then SCR:Destroy() end
-            end
-        end)
-        task.wait(0.1)
-    end
-end)
+-- Убираем весь старый код скорости (WALK_SPEED, SEEK_SPEED, RenderStepped и т.д.)
 
 -- ══════════════════════════════════════════════
 -- 2. FULLBRIGHT
 -- ══════════════════════════════════════════════
 local function applyFullbright()
-    Lighting.Brightness     = 2
-    Lighting.ClockTime      = 14
-    Lighting.FogEnd         = 100000
-    Lighting.FogStart       = 100000
-    Lighting.GlobalShadows  = false
-    Lighting.Ambient        = Color3.fromRGB(255, 255, 255)
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 100000
+    Lighting.FogStart = 100000
+    Lighting.GlobalShadows = false
+    Lighting.Ambient = Color3.fromRGB(255, 255, 255)
     Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+    
     for _, e in pairs(Lighting:GetChildren()) do
         if e:IsA("PostEffect") or e:IsA("Sky") or e:IsA("Atmosphere") then
             e:Destroy()
@@ -94,27 +68,27 @@ Lighting.Changed:Connect(applyFullbright)
 -- 3. СПИСОК ЦЕЛЕЙ
 -- ══════════════════════════════════════════════
 local targets = {
-    ["Door"]                  = { Color = Color3.fromRGB(255, 120,  0), Name = "🚪 Дверь"             },
-    ["KeyObtain"]             = { Color = Color3.fromRGB(  0, 255, 80), Name = "🔑 Ключ"              },
-    ["Lockpick"]              = { Color = Color3.fromRGB(  0, 255, 80), Name = "🔓 Отмычка"           },
-    ["Vitamins"]              = { Color = Color3.fromRGB(  0, 255, 80), Name = "💊 Витамины"          },
-    ["LeverForGate"]          = { Color = Color3.fromRGB(  0, 255, 80), Name = "🕹️ Рычаг"            },
-    ["Book"]                  = { Color = Color3.fromRGB(  0, 255, 80), Name = "📖 Книга"             },
-    ["Flashlight"]            = { Color = Color3.fromRGB(  0, 255, 80), Name = "🔦 Фонарик"          },
-    ["GoldPile"]              = { Color = Color3.fromRGB(  0, 255, 80), Name = "💰 Золото"            },
-    ["Breaker Pole"]          = { Color = Color3.fromRGB(  0, 255, 80), Name = "⚡ Рубильник"         },
-    ["Crucifix"]              = { Color = Color3.fromRGB(255, 255,255), Name = "✝️ Распятие" },
-    ["LiveBreakerPolePickup"] = { Color = Color3.fromRGB(  0, 220,255), Name = "🔌 Рубильник (живой)" },
-    ["LiveHintBook"]          = { Color = Color3.fromRGB(  0, 160,255), Name = "📘 Подсказки"         },
-    ["Rush"]         = { Color = Color3.fromRGB(255,  50, 50), Name = "💨 RUSH",    isMon=true },
-    ["RushMoving"]   = { Color = Color3.fromRGB(255,  50, 50), Name = "💨 RUSH",    isMon=true },
-    ["Ambush"]       = { Color = Color3.fromRGB(255, 140,  0), Name = "🔄 AMBUSH",  isMon=true },
-    ["AmbushMoving"] = { Color = Color3.fromRGB(255, 140,  0), Name = "🔄 AMBUSH",  isMon=true },
-    ["Figure"]       = { Color = Color3.fromRGB(200,   0,255), Name = "👹 FIGURE",  isMon=true },
-    ["FigureRig"]    = { Color = Color3.fromRGB(200,   0,255), Name = "👹 FIGURE",  isMon=true },
-    ["Seek"]         = { Color = Color3.fromRGB(255,   0,100), Name = "👁️ SEEK",    isMon=true, isSee=true },
-    ["SeekRig"]      = { Color = Color3.fromRGB(255,   0,100), Name = "👁️ SEEK",    isMon=true, isSee=true },
-    ["Dupe"]         = { Color = Color3.fromRGB(255,  30, 30), Name = "⚠️ DUPE",    isMon=true },
+    ["Door"] = { Color = Color3.fromRGB(255, 120, 0), Name = "🚪 Дверь" },
+    ["KeyObtain"] = { Color = Color3.fromRGB(0, 255, 80), Name = "🔑 Ключ" },
+    ["Lockpick"] = { Color = Color3.fromRGB(0, 255, 80), Name = "🔓 Отмычка" },
+    ["Vitamins"] = { Color = Color3.fromRGB(0, 255, 80), Name = "💊 Витамины" },
+    ["LeverForGate"] = { Color = Color3.fromRGB(0, 255, 80), Name = "🕹️ Рычаг" },
+    ["Book"] = { Color = Color3.fromRGB(0, 255, 80), Name = "📖 Книга" },
+    ["Flashlight"] = { Color = Color3.fromRGB(0, 255, 80), Name = "🔦 Фонарик" },
+    ["GoldPile"] = { Color = Color3.fromRGB(0, 255, 80), Name = "💰 Золото" },
+    ["Breaker Pole"] = { Color = Color3.fromRGB(0, 255, 80), Name = "⚡ Рубильник" },
+    ["Crucifix"] = { Color = Color3.fromRGB(255, 255,255), Name = "✝️ Распятие" },
+    ["LiveBreakerPolePickup"] = { Color = Color3.fromRGB(0, 220,255), Name = "🔌 Рубильник (живой)" },
+    ["LiveHintBook"] = { Color = Color3.fromRGB(0, 160,255), Name = "📘 Подсказки" },
+    ["Rush"] = { Color = Color3.fromRGB(255, 50, 50), Name = "💨 RUSH", isMon=true },
+    ["RushMoving"] = { Color = Color3.fromRGB(255, 50, 50), Name = "💨 RUSH", isMon=true },
+    ["Ambush"] = { Color = Color3.fromRGB(255, 140, 0), Name = "🔄 AMBUSH", isMon=true },
+    ["AmbushMoving"] = { Color = Color3.fromRGB(255, 140, 0), Name = "🔄 AMBUSH", isMon=true },
+    ["Figure"] = { Color = Color3.fromRGB(200, 0,255), Name = "👹 FIGURE", isMon=true },
+    ["FigureRig"] = { Color = Color3.fromRGB(200, 0,255), Name = "👹 FIGURE", isMon=true },
+    ["Seek"] = { Color = Color3.fromRGB(255, 0,100), Name = "👁️ SEEK", isMon=true, isSee=true },
+    ["SeekRig"] = { Color = Color3.fromRGB(255, 0,100), Name = "👁️ SEEK", isMon=true, isSee=true },
+    ["Dupe"] = { Color = Color3.fromRGB(255, 30, 30), Name = "⚠️ DUPE", isMon=true },
 }
 
 local MONSTER_NAMES = {}
@@ -123,46 +97,44 @@ for k, v in pairs(targets) do
 end
 
 local highlightedObjects = {}
-local notifiedMonsters   = {}
+local notifiedMonsters = {}
+local seekChasing = false
 
 -- ══════════════════════════════════════════════
--- 4. BILLBOARD GUI
+-- 4-10. (Billboard, Highlight, Door check, Process, Warnings, Monsters и т.д.)
 -- ══════════════════════════════════════════════
 local function createBillboard(anchorPart, itemName, color, isMonster)
     if not anchorPart or not anchorPart.Parent then return end
     if anchorPart:FindFirstChild("ItemLabel") then return end
-
+    
     local bb = Instance.new("BillboardGui")
-    bb.Name           = "ItemLabel"
-    bb.Parent         = anchorPart
-    bb.Size           = UDim2.new(0, isMonster and 210 or 170, 0, isMonster and 44 or 36)
-    bb.StudsOffset    = Vector3.new(0, isMonster and 4.5 or 2.5, 0)
-    bb.AlwaysOnTop    = true
-    bb.MaxDistance    = 0
+    bb.Name = "ItemLabel"
+    bb.Parent = anchorPart
+    bb.Size = UDim2.new(0, isMonster and 210 or 170, 0, isMonster and 44 or 36)
+    bb.StudsOffset = Vector3.new(0, isMonster and 4.5 or 2.5, 0)
+    bb.AlwaysOnTop = true
+    bb.MaxDistance = 0
     bb.LightInfluence = 0
-
+    
     local bg = Instance.new("Frame", bb)
-    bg.Size                   = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     bg.BackgroundTransparency = 0.35
-    bg.BorderSizePixel        = 0
+    bg.BorderSizePixel = 0
     Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 6)
-
+    
     local lbl = Instance.new("TextLabel", bg)
-    lbl.Size                   = UDim2.new(1, -8, 1, 0)
-    lbl.Position               = UDim2.new(0, 4, 0, 0)
+    lbl.Size = UDim2.new(1, -8, 1, 0)
+    lbl.Position = UDim2.new(0, 4, 0, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Text                   = itemName
-    lbl.TextColor3             = color
-    lbl.TextScaled             = true
-    lbl.Font                   = Enum.Font.GothamBold
+    lbl.Text = itemName
+    lbl.TextColor3 = color
+    lbl.TextScaled = true
+    lbl.Font = Enum.Font.GothamBold
     lbl.TextStrokeTransparency = 0.1
-    lbl.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
+    lbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 end
 
--- ══════════════════════════════════════════════
--- 5. HIGHLIGHT
--- ══════════════════════════════════════════════
 local function resolveTarget(obj)
     if obj:IsA("Model") then return obj end
     if obj.Parent and obj.Parent:IsA("Model") then return obj.Parent end
@@ -172,59 +144,54 @@ end
 local function addHighlight(target, color, itemName, isMonster)
     if not target or not target.Parent then return end
     if character and target:IsDescendantOf(character) then return end
-
+    
     if not highlightedObjects[target] then
         local h = Instance.new("Highlight")
-        h.Parent              = target
-        h.FillColor           = color
-        h.FillTransparency    = isMonster and 0.15 or 0.35
-        h.OutlineColor        = Color3.fromRGB(255, 255, 255)
+        h.Parent = target
+        h.FillColor = color
+        h.FillTransparency = isMonster and 0.15 or 0.35
+        h.OutlineColor = Color3.fromRGB(255, 255, 255)
         h.OutlineTransparency = 0.0
-        h.DepthMode           = Enum.HighlightDepthMode.AlwaysOnTop
+        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         highlightedObjects[target] = h
     end
-
-    local anchor = target:IsA("BasePart") and target
-        or (target:IsA("Model") and (target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart", true)))
-    if anchor then createBillboard(anchor, itemName, color, isMonster) end
+    
+    local anchor = target:IsA("BasePart") and target or (target:IsA("Model") and (target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart", true)))
+    if anchor then
+        createBillboard(anchor, itemName, color, isMonster)
+    end
 end
 
--- ══════════════════════════════════════════════
--- 6. ПРОВЕРКА ДВЕРЕЙ
--- ══════════════════════════════════════════════
 local function isRealDoor(obj)
     local parent = obj.Parent
     if parent and parent:IsA("Model") then
         local n = parent.Name:lower()
-        if (n:find("door") or n:find("exit") or n:find("gate"))
-            and not parent:FindFirstChild("RushSpawn") then
+        if (n:find("door") or n:find("exit") or n:find("gate")) and not parent:FindFirstChild("RushSpawn") then
             return true, parent
         end
     end
     if obj:IsA("Model") then
         local n = obj.Name:lower()
-        if (n:find("door") or n:find("exit") or n:find("gate"))
-            and not obj:FindFirstChild("RushSpawn") then
+        if (n:find("door") or n:find("exit") or n:find("gate")) and not obj:FindFirstChild("RushSpawn") then
             return true, obj
         end
     end
     return false, nil
 end
 
--- ══════════════════════════════════════════════
--- 7. ОБРАБОТКА ПРЕДМЕТОВ
--- ══════════════════════════════════════════════
 local function processObject(obj)
     if not obj or not obj.Parent then return end
     if character and obj:IsDescendantOf(character) then return end
     if MONSTER_NAMES[obj.Name] then return end
-
+    
     local data = targets[obj.Name]
     if not data then return end
-
+    
     if obj.Name == "Door" then
         local ok, doorModel = isRealDoor(obj)
-        if ok then addHighlight(doorModel, data.Color, data.Name, false) end
+        if ok then
+            addHighlight(doorModel, data.Color, data.Name, false)
+        end
     elseif obj.Name == "KeyObtain" then
         if not obj.Parent:IsDescendantOf(character) then
             addHighlight(resolveTarget(obj), data.Color, data.Name, false)
@@ -234,20 +201,12 @@ local function processObject(obj)
             addHighlight(obj, data.Color, data.Name, false)
         elseif obj:IsA("BasePart") then
             local p = obj.Parent
-            addHighlight(
-                (p and p:IsA("Model") and p.Name == obj.Name) and p or obj,
-                data.Color, data.Name, false
-            )
+            addHighlight((p and p:IsA("Model") and p.Name == obj.Name) and p or obj, data.Color, data.Name, false)
         end
     end
 end
 
--- ══════════════════════════════════════════════
--- 8. GUI ПРЕДУПРЕЖДЕНИЙ
--- Уведомление показывается 1 секунду.
--- Очередь: если пришло несколько атак подряд —
--- каждое покажется по 1 секунде без пропусков.
--- ══════════════════════════════════════════════
+-- GUI предупреждений
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui", playerGui)
 screenGui.ResetOnSpawn = false
@@ -281,14 +240,15 @@ dangerSub.TextScaled = true
 dangerSub.Font = Enum.Font.Gotham
 dangerSub.Text = ""
 
-local warnQueue  = {}
+local warnQueue = {}
 local warnActive = false
 
 local function queueWarning(title, sub, titleColor, strokeColor)
     table.insert(warnQueue, {
-        title=title, sub=sub,
-        titleColor=titleColor or Color3.fromRGB(255, 80, 80),
-        strokeColor=strokeColor or Color3.fromRGB(255, 50, 50),
+        title = title,
+        sub = sub,
+        titleColor = titleColor or Color3.fromRGB(255, 80, 80),
+        strokeColor = strokeColor or Color3.fromRGB(255, 50, 50),
     })
 end
 
@@ -297,12 +257,12 @@ task.spawn(function()
         if #warnQueue > 0 and not warnActive then
             warnActive = true
             local w = table.remove(warnQueue, 1)
-            dangerTitle.Text       = w.title
+            dangerTitle.Text = w.title
             dangerTitle.TextColor3 = w.titleColor
-            dangerSub.Text         = w.sub
-            dangerStroke.Color     = w.strokeColor
-            dangerFrame.Visible    = true
-            task.wait(1)  -- ровно 1 секунда
+            dangerSub.Text = w.sub
+            dangerStroke.Color = w.strokeColor
+            dangerFrame.Visible = true
+            task.wait(1)
             dangerFrame.Visible = false
             warnActive = false
         end
@@ -310,62 +270,36 @@ task.spawn(function()
     end
 end)
 
--- ══════════════════════════════════════════════
--- 9. ОБРАБОТКА МОНСТРОВ
--- Dupe — хайлайт есть, уведомления нет
--- ══════════════════════════════════════════════
 local function handleMonster(obj)
     local data = targets[obj.Name]
     if not data or not data.isMon then return end
     if notifiedMonsters[obj] then return end
+    
     notifiedMonsters[obj] = true
-
     local t = resolveTarget(obj)
     addHighlight(t, data.Color, data.Name, true)
-
+    
     if data.isSee then
         seekChasing = true
-        setSpeed()
         queueWarning(
-            "👁️  SEEK ГОНИТСЯ ЗА ТОБОЙ!",
-            "Бегом! Скорость повышена до " .. SEEK_SPEED,
+            "👁️ SEEK ГОНИТСЯ ЗА ТОБОЙ!",
+            "Бегом!",
             Color3.fromRGB(255, 50, 120),
             Color3.fromRGB(255, 0, 100)
         )
         obj.AncestryChanged:Connect(function(_, p)
-            if p == nil then seekChasing = false; setSpeed() end
+            if p == nil then seekChasing = false end
         end)
-
     elseif obj.Name == "Figure" or obj.Name == "FigureRig" then
-        queueWarning(
-            "👹  FIGURE ПОЯВИЛСЯ!",
-            "Тихо! Прячься, он слышит звуки.",
-            Color3.fromRGB(180, 50, 255),
-            Color3.fromRGB(200, 0, 255)
-        )
-
+        queueWarning("👹 FIGURE ПОЯВИЛСЯ!", "Тихо! Прячься, он слышит звуки.", Color3.fromRGB(180, 50, 255), Color3.fromRGB(200, 0, 255))
     elseif obj.Name == "Rush" or obj.Name == "RushMoving" then
-        queueWarning(
-            "💨  RUSH ПРИБЛИЖАЕТСЯ!",
-            "Прячься в шкаф немедленно!",
-            Color3.fromRGB(255, 80, 80),
-            Color3.fromRGB(255, 50, 50)
-        )
-
+        queueWarning("💨 RUSH ПРИБЛИЖАЕТСЯ!", "Прячься в шкаф немедленно!", Color3.fromRGB(255, 80, 80), Color3.fromRGB(255, 50, 50))
     elseif obj.Name == "Ambush" or obj.Name == "AmbushMoving" then
-        queueWarning(
-            "🔄  AMBUSH! НЕСКОЛЬКО ЗАХОДОВ!",
-            "Оставайся в шкафу — он вернётся!",
-            Color3.fromRGB(255, 160, 30),
-            Color3.fromRGB(255, 140, 0)
-        )
-    -- Dupe: хайлайт добавлен выше, уведомление не показываем
+        queueWarning("🔄 AMBUSH! НЕСКОЛЬКО ЗАХОДОВ!", "Оставайся в шкафу — он вернётся!", Color3.fromRGB(255, 160, 30), Color3.fromRGB(255, 140, 0))
     end
 end
 
--- ══════════════════════════════════════════════
--- 10. ЕДИНЫЙ ОБРАБОТЧИК
--- ══════════════════════════════════════════════
+-- Единый обработчик
 Workspace.DescendantAdded:Connect(function(desc)
     if DEBUG_MODE and (desc:IsA("Model") or desc.Parent == Workspace) then
         print("[ESP DEBUG]", desc.Name, "| Parent:", desc.Parent and desc.Parent.Name or "nil")
@@ -377,24 +311,7 @@ Workspace.DescendantAdded:Connect(function(desc)
     end
 end)
 
--- ══════════════════════════════════════════════
--- 11. СКАНИРОВАНИЕ ReplicatedStorage/Entities
--- ══════════════════════════════════════════════
-task.spawn(function()
-    local ok, entities = pcall(function()
-        return ReplicatedStorage:WaitForChild("Entities", 5)
-    end)
-    if ok and entities then
-        print("[ESP] Entities:")
-        for _, child in pairs(entities:GetChildren()) do
-            print("  →", child.Name)
-        end
-    end
-end)
-
--- ══════════════════════════════════════════════
--- 12. ПОЛНОЕ СКАНИРОВАНИЕ
--- ══════════════════════════════════════════════
+-- Сканирование
 local function scanObjects()
     for _, obj in pairs(Workspace:GetDescendants()) do
         if MONSTER_NAMES[obj.Name] then
@@ -405,41 +322,37 @@ local function scanObjects()
     end
 end
 
--- ══════════════════════════════════════════════
--- 13. ОЧИСТКА ПРИ СМЕРТИ
--- ══════════════════════════════════════════════
+-- Очистка при смерти
 player.CharacterAdded:Connect(function(newChar)
     for _, h in pairs(highlightedObjects) do
         if h and h.Parent then h:Destroy() end
     end
     highlightedObjects = {}
-    notifiedMonsters   = {}
-    seekChasing        = false
-
+    notifiedMonsters = {}
+    seekChasing = false
+    
     character = newChar
-    humanoid  = character:WaitForChild("Humanoid")
+    humanoid = character:WaitForChild("Humanoid")
     task.wait(1)
-    setSpeed()
+    applyBoost()
     applyFullbright()
     scanObjects()
 end)
 
--- ══════════════════════════════════════════════
--- ЗАПУСК
--- ══════════════════════════════════════════════
+-- Запуск
 task.spawn(function()
     while true do
         task.wait(6)
         scanObjects()
-        setSpeed()
+        applyBoost()
         applyFullbright()
     end
 end)
 
 scanObjects()
-setSpeed()
+applyBoost()
 applyFullbright()
 
-print("✅ DOORS ESP v7 загружен!")
-print("⚡ Скорость: " .. WALK_SPEED .. " / Seek: " .. SEEK_SPEED)
-print("⏱️  Уведомления: 1 сек, очередь активна")
+print("✅ DOORS ESP v7.1 (Soft Speed +15) загружен!")
+print("⚡ Скорость: ~31 (мягкий буст)")
+print("⏱️ Уведомления: 1 секунда")
