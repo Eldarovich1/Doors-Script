@@ -113,8 +113,6 @@ local targets = {
     ["FigureRig"]    = { Color = Color3.fromRGB(200,   0,255), Name = "👹 FIGURE",  isMon=true },
     ["Seek"]         = { Color = Color3.fromRGB(255,   0,100), Name = "👁️ SEEK",    isMon=true, isSee=true },
     ["SeekRig"]      = { Color = Color3.fromRGB(255,   0,100), Name = "👁️ SEEK",    isMon=true, isSee=true },
-    ["Screech"]      = { Color = Color3.fromRGB(255,  80,200), Name = "😱 SCREECH", isMon=true, isScr=true },
-    ["ScreechRig"]   = { Color = Color3.fromRGB(255,  80,200), Name = "😱 SCREECH", isMon=true, isScr=true },
     ["Dupe"]         = { Color = Color3.fromRGB(255,  30, 30), Name = "⚠️ DUPE",    isMon=true },
 }
 
@@ -324,15 +322,7 @@ local function handleMonster(obj)
     local t = resolveTarget(obj)
     addHighlight(t, data.Color, data.Name, true)
 
-    if data.isScr then
-        queueWarning(
-            "😱  SCREECH РЯДОМ!",
-            "Смотри прямо на него и нажми кнопку!",
-            Color3.fromRGB(255, 100, 220),
-            Color3.fromRGB(255, 80, 200)
-        )
-
-    elseif data.isSee then
+    if data.isSee then
         seekChasing = true
         setSpeed()
         queueWarning(
